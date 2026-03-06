@@ -21,6 +21,7 @@ def build_extensions():
         "data": []
     }
 
+    # Làm sạch thư mục build cũ
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
@@ -39,12 +40,13 @@ def build_extensions():
                         print(f"Lỗi đọc file {plugin_config_path}: {e}")
                         continue
 
-                # 2. Tạo thư mục và nén plugin.zip
+                # 2. Tạo thư mục đích cho extension trong dist (vd: dist/tranh18)
                 ext_output_dir = os.path.join(output_dir, entry.name)
                 os.makedirs(ext_output_dir)
+
+                # 3. Nén toàn bộ nội dung thành plugin.zip
                 zip_name = "plugin.zip"
                 zip_path = os.path.join(ext_output_dir, zip_name)
-                
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                     for root, dirs, files in os.walk(entry.path):
                         for file in files:
@@ -52,8 +54,17 @@ def build_extensions():
                             arcname = os.path.relpath(file_path, entry.path)
                             zipf.write(file_path, arcname)
 
-                # 3. Trích xuất metadata từ plugin.json gốc để đưa vào danh sách data
-                # Ưu tiên lấy từ config['metadata'], nếu không có thì lấy mặc định
+                # 4. Copy file icon.png sang thư mục build nếu tồn tại
+                icon_name = "icon.png"
+                source_icon = os.path.join(entry.path, icon_name)
+                if os.path.exists(source_icon):
+                    shutil.copy2(source_icon, os.path.join(ext_output_dir, icon_name))
+                    icon_url = f"{BASE_RAW_URL}/{entry.name}/{icon_name}"
+                else:
+                    # Nếu không có icon riêng, có thể để link trống hoặc link icon mặc định
+                    icon_url = ""
+
+                # 5. Trích xuất metadata để đưa vào file plugin.json tổng
                 meta = config.get("metadata", {})
                 
                 ext_entry = {
@@ -62,20 +73,20 @@ def build_extensions():
                     "path": f"{BASE_RAW_URL}/{entry.name}/{zip_name}",
                     "version": meta.get("version", 1),
                     "source": meta.get("source", ""),
-                    "icon": f"{BASE_RAW_URL}/{entry.name}/icon.png", # Mặc định lấy icon.png trong mỗi folder
+                    "icon": icon_url,
                     "description": meta.get("description", "Đọc truyện trên " + entry.name),
                     "type": meta.get("type", "comic"),
                     "locale": meta.get("locale", "vi_VN")
                 }
 
                 final_output["data"].append(ext_entry)
-                print(f"Đã đóng gói: {entry.name}")
+                print(f"Đã đóng gói và copy icon cho: {entry.name}")
 
-    # 4. Ghi file plugin.json tổng hợp vào thư mục dist
+    # 6. Ghi file plugin.json tổng hợp
     if final_output["data"]:
         with open(os.path.join(output_dir, 'plugin.json'), 'w', encoding='utf-8') as f:
             json.dump(final_output, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
     build_extensions()
-                
+    
