@@ -1,0 +1,33 @@
+name: Build Extensions
+
+on:
+  push:
+    branches:
+      - master  # Chạy mỗi khi bạn push code lên branch master
+  workflow_dispatch: # Cho phép chạy thủ công từ tab Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup Environment
+        run: |
+          chmod +x run.sh
+
+      - name: Run Build Script
+        run: ./run.sh
+
+      - name: Deploy to builds branch
+        uses: s0/git-publish-subdir-action@develop
+        env:
+          REPO: self
+          BRANCH: builds # Nhánh đích
+          FOLDER: . # Thư mục chứa kết quả build (thay đổi nếu run.sh xuất ra folder riêng)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESSAGE: "Build extensions: {sha}"
