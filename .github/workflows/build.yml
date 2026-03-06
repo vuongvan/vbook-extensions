@@ -1,4 +1,4 @@
-name: Build Extensions
+name: Build and Deploy Extensions
 
 on:
   push:
@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Cấp quyền ghi để có thể push lên branch builds
     permissions:
       contents: write
 
@@ -17,21 +16,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Bỏ phần 'ref: master' chi tiết để dùng mặc định, tránh lỗi fetch
-          fetch-depth: 0 
+          fetch-depth: 0
 
-      - name: Setup Environment
-        run: chmod +x run.sh
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
       - name: Run Build Script
-        run: ./run.sh
+        run: python build.py
 
       - name: Deploy to builds branch
         uses: s0/git-publish-subdir-action@develop
         env:
           REPO: self
           BRANCH: builds
-          FOLDER: . 
+          FOLDER: dist # Đẩy toàn bộ nội dung trong thư mục dist lên nhánh builds
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MESSAGE: "Build extensions: {sha}"
           
